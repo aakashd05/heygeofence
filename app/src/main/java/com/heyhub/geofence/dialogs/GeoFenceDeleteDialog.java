@@ -60,6 +60,7 @@ public class GeoFenceDeleteDialog extends DialogFragment implements View.OnClick
                 ((MapsActivity) mContext).deleteThisMarker(mMarker);
                 break;
             case R.id.btn_no:
+                mMarker.showInfoWindow();
                 dismiss();
                 break;
             default:

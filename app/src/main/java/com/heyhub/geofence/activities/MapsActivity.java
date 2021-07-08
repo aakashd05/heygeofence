@@ -46,6 +46,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     GeofencingClient geoFencingClient;
     GeoFenceHelper fenceHelper;
 
+    String[] permissionsRequired={Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_BACKGROUND_LOCATION};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,18 +62,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        checkPermissions();
+        addDefaultGeoFences();
         populateGeoFences();
         mMap.setOnMapLongClickListener(this);
-        checkPermissions();
+        mMap.setOnMarkerClickListener(this);
     }
 
     private void checkPermissions() {
-        if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)) ==
-                PackageManager.PERMISSION_GRANTED) {
+        if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, FINE_LOCATION_REQUEST_CODE);
         }
+    }
+
+    private void addDefaultGeoFences() {
+        updateFenceModelList(new LatLng(51.511895, -0.117569), "London", 3220);
+        updateFenceModelList(new LatLng(19.185490, 72.978910), "Thane", 500);
     }
 
     @Override
@@ -79,9 +87,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == FINE_LOCATION_REQUEST_CODE) {
             if (grantResults.length > 0) {
-                if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)) ==
+                if ((ContextCompat.checkSelfPermission(this, permissionsRequired[0])) ==
                         PackageManager.PERMISSION_GRANTED) {
                     mMap.setMyLocationEnabled(true);
+                }
+            }
+        }
+        if (requestCode == BACKGROUND_LOCATION_REQUEST_CODE) {
+            if (grantResults.length > 0) {
+                if ((ContextCompat.checkSelfPermission(this, permissionsRequired[1]) ==
+                        PackageManager.PERMISSION_GRANTED)) {
+                    addDefaultGeoFences();
+                    populateGeoFences();
                 }
             }
         }
@@ -90,7 +107,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapLongClick(@NonNull LatLng latLng) {
         checkPermissionForBackgroundLocation(latLng);
-        mMap.setOnMarkerClickListener(this);
     }
 
     private void checkPermissionForBackgroundLocation(LatLng latLng) {
@@ -139,13 +155,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void addCustomMarker(LatLng latLng, String fenceName) {
-        MarkerOptions mOptions = new MarkerOptions().position(latLng).title(fenceName).title(fenceName).icon(BitmapDescriptorFactory.fromResource(R.drawable.flag)).alpha();
-        mMap.addMarker(mOptions);
+        MarkerOptions mOptions = new MarkerOptions()
+                .position(latLng).title(fenceName)
+                .title(fenceName);
+        Marker marker = mMap.addMarker(mOptions);
+        marker.showInfoWindow();
     }
 
-
     @Override
-    public boolean onMarkerClick(@NonNull Marker marker) {
+    public boolean onMarkerClick(Marker marker) {
         GeoFenceDeleteDialog geoFenceDeleteDialog = new GeoFenceDeleteDialog(this, marker);
         geoFenceDeleteDialog.show(getSupportFragmentManager(), "Delete Dialog");
         return true;
@@ -156,7 +174,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (fenceModelsList.size() > 0) {
             for (FenceModel fenceModel : fenceModelsList) {
                 LatLng fenceLatLng = new LatLng(fenceModel.getLat(), fenceModel.getLng());
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(fenceLatLng, 16));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(fenceLatLng, 12));
                 addGeoFence(fenceLatLng, fenceModel.getRadius());
                 addCustomMarker(fenceLatLng, fenceModel.getFenceName());
                 addMarkerCircle(fenceLatLng, fenceModel.getRadius());
@@ -191,11 +209,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         PendingIntent pendingIntent = fenceHelper.getPendingIntent();
         geoFencingClient.addGeofences(geofencingRequest, pendingIntent)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Fence Added", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(this, "Fence Added", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
-                    String errorMessage = fenceHelper.getErrorString(e);
-                    Toast.makeText(this, "Error : " + errorMessage, Toast.LENGTH_SHORT).show();
+//                    String errorMessage = fenceHelper.getErrorString(e);
+//                    Toast.makeText(this, "Error : " + errorMessage, Toast.LENGTH_SHORT).show();
                 });
     }
 }
