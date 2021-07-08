@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">HeyGeoFence</string>
+    <string name="title_activity_maps">Map</string>
 </resources>
