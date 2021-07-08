@@ -139,7 +139,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void addCustomMarker(LatLng latLng, String fenceName) {
-        MarkerOptions mOptions = new MarkerOptions().position(latLng).title(fenceName).title(fenceName);
+        MarkerOptions mOptions = new MarkerOptions().position(latLng).title(fenceName).title(fenceName).icon(BitmapDescriptorFactory.fromResource(R.drawable.flag)).alpha();
         mMap.addMarker(mOptions);
     }
 
@@ -148,7 +148,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public boolean onMarkerClick(@NonNull Marker marker) {
         GeoFenceDeleteDialog geoFenceDeleteDialog = new GeoFenceDeleteDialog(this, marker);
         geoFenceDeleteDialog.show(getSupportFragmentManager(), "Delete Dialog");
-        return false;
+        return true;
     }
 
     public void populateGeoFences() {
