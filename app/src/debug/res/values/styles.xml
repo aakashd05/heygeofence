@@ -1,0 +1,9 @@
+<resources>
+
+    <style name="fence_dialog_style" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowBackground">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">false</item>
+    </style>
+
+</resources>

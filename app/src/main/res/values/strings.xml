@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">HeyGeoFence</string>
     <string name="title_activity_maps">Map</string>
+    <string name="geofence_detail_title">GeoFencing Details</string>
+    <string name="fence_name">Geofence name</string>
+    <string name="fence_radius">Geofence radius</string>
+    <string name="submit">Submit</string>
+    <string name="geofence_delete_title">Delete Geofence</string>
+    <string name="delete_geofence_question">Are you sure you want to delete this Geofence?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>
