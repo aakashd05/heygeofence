@@ -6,7 +6,7 @@ import android.app.PendingIntent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.widget.Toast;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -21,14 +21,15 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.*;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.heyhub.geofence.models.FenceModel;
+import com.heyhub.geofence.R;
 import com.heyhub.geofence.dialogs.GeoFenceDeleteDialog;
 import com.heyhub.geofence.dialogs.GeoFenceDetailDialog;
-import com.heyhub.geofence.R;
+import com.heyhub.geofence.models.FenceModel;
+import com.heyhub.geofence.utils.Constants;
 import com.heyhub.geofence.utils.GeoFenceHelper;
 import com.heyhub.geofence.utils.SharedPrefs;
 
@@ -39,21 +40,18 @@ import java.util.Random;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMapLongClickListener, GoogleMap.OnMarkerClickListener {
 
 
-    private String GEOFENCE_ID = "GEOFENCE_ID_";
     private static final int FINE_LOCATION_REQUEST_CODE = 100;
     private static final int BACKGROUND_LOCATION_REQUEST_CODE = 101;
     private GoogleMap mMap;
-    GeofencingClient geoFencingClient;
-    GeoFenceHelper fenceHelper;
-
-    String[] permissionsRequired={Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_BACKGROUND_LOCATION};
+    private GeofencingClient geoFencingClient;
+    private GeoFenceHelper fenceHelper;
+    private LatLng mLatLng;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         geoFencingClient = LocationServices.getGeofencingClient(this);
         fenceHelper = new GeoFenceHelper(this);
@@ -87,7 +85,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == FINE_LOCATION_REQUEST_CODE) {
             if (grantResults.length > 0) {
-                if ((ContextCompat.checkSelfPermission(this, permissionsRequired[0])) ==
+                if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)) ==
                         PackageManager.PERMISSION_GRANTED) {
                     mMap.setMyLocationEnabled(true);
                 }
@@ -95,10 +93,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         if (requestCode == BACKGROUND_LOCATION_REQUEST_CODE) {
             if (grantResults.length > 0) {
-                if ((ContextCompat.checkSelfPermission(this, permissionsRequired[1]) ==
+                if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
                         PackageManager.PERMISSION_GRANTED)) {
-                    addDefaultGeoFences();
-                    populateGeoFences();
+                    if (mLatLng != null) {
+                        openGeoFenceDetailDialog(mLatLng);
+                        mLatLng = null;
+                    }
                 }
             }
         }
@@ -115,6 +115,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     PackageManager.PERMISSION_GRANTED) {
                 openGeoFenceDetailDialog(latLng);
             } else {
+                mLatLng = latLng;
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, BACKGROUND_LOCATION_REQUEST_CODE);
             }
         }
@@ -134,7 +135,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fenceModel.setLat(latLng.latitude);
         fenceModel.setLng(latLng.longitude);
         ArrayList<FenceModel> fenceModelsList = SharedPrefs.fetchFenceList(this);
-        if (!fenceModelsList.contains(fenceModel)) {
+        boolean isPresent = false;
+        for (FenceModel fence : fenceModelsList) {
+            if (fenceModel.getLat().equals(fence.getLat()) && fenceModel.getLng().equals(fence.getLng())) {
+                isPresent = true;
+                break;
+            }
+        }
+        if (!isPresent) {
             fenceModelsList.add(fenceModel);
             SharedPrefs.storeFenceList(this, fenceModelsList);
         }
@@ -174,7 +182,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (fenceModelsList.size() > 0) {
             for (FenceModel fenceModel : fenceModelsList) {
                 LatLng fenceLatLng = new LatLng(fenceModel.getLat(), fenceModel.getLng());
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(fenceLatLng, 12));
+                if (fenceModel.getRadius() > 500) {
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(fenceLatLng, 12));
+                } else {
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(fenceLatLng, 15));
+                }
                 addGeoFence(fenceLatLng, fenceModel.getRadius());
                 addCustomMarker(fenceLatLng, fenceModel.getFenceName());
                 addMarkerCircle(fenceLatLng, fenceModel.getRadius());
@@ -204,16 +216,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @SuppressLint("MissingPermission")
     private void addGeoFence(LatLng latLng, float radius) {
-        Geofence geofence = fenceHelper.getGeoFence(GEOFENCE_ID + new Random().nextInt(), latLng, radius, Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_DWELL | Geofence.GEOFENCE_TRANSITION_EXIT);
+        Geofence geofence = fenceHelper.getGeoFence(Constants.GEOFENCE_ID + new Random().nextInt(), latLng, radius, Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_DWELL | Geofence.GEOFENCE_TRANSITION_EXIT);
         GeofencingRequest geofencingRequest = fenceHelper.getGeoFencingRequest(geofence);
         PendingIntent pendingIntent = fenceHelper.getPendingIntent();
         geoFencingClient.addGeofences(geofencingRequest, pendingIntent)
                 .addOnSuccessListener(aVoid -> {
-//                    Toast.makeText(this, "Fence Added", Toast.LENGTH_SHORT).show();
+                    Log.e("Fence Adding", "Fence Success");
                 })
                 .addOnFailureListener(e -> {
-//                    String errorMessage = fenceHelper.getErrorString(e);
-//                    Toast.makeText(this, "Error : " + errorMessage, Toast.LENGTH_SHORT).show();
+                    String errorMessage = fenceHelper.getErrorString(e);
+                    Log.e("Fence Adding", "Fence Failed ->" + errorMessage);
                 });
     }
 }

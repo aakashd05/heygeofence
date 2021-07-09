@@ -29,7 +29,6 @@ public class GeoFenceDeleteDialog extends DialogFragment implements View.OnClick
         mMarker = marker;
     }
 
-
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {

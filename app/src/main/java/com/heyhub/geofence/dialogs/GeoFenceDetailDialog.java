@@ -72,7 +72,7 @@ public class GeoFenceDetailDialog extends DialogFragment implements View.OnClick
                     dismiss();
                     ((MapsActivity) mContext).addFenceOnMap(mLatLng, fenceNameEt.getText().toString(), Integer.parseInt(fenceRadiusEt.getText().toString()));
                 } else {
-                    Toast.makeText(mContext, "Enter proper details.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, getString(R.string.enter_proper_details), Toast.LENGTH_SHORT).show();
                 }
                 break;
             default:

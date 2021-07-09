@@ -2,6 +2,7 @@ package com.heyhub.geofence.utils;
 
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 
 import com.google.android.gms.common.api.ApiException;
@@ -11,14 +12,13 @@ import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.maps.model.LatLng;
 import com.heyhub.geofence.receivers.GeoFenceBroadcastReceiver;
 
-public class GeoFenceHelper {
+public class GeoFenceHelper extends ContextWrapper {
 
-    Context mContext;
     int GEO_FENCE_REQUEST = 105;
     private PendingIntent pendingIntent;
 
     public GeoFenceHelper(Context context) {
-        mContext=context;
+        super(context);
     }
 
     public Geofence getGeoFence(String fenceId, LatLng latLng, float fenceRadius, int transitionType) {
@@ -42,9 +42,8 @@ public class GeoFenceHelper {
         if (pendingIntent != null) {
             return pendingIntent;
         }
-        Intent intent = new Intent(mContext, GeoFenceBroadcastReceiver.class);
-        pendingIntent = PendingIntent.getBroadcast(mContext, GEO_FENCE_REQUEST, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
+        Intent intent = new Intent(getApplicationContext(), GeoFenceBroadcastReceiver.class);
+        pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), GEO_FENCE_REQUEST, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         return pendingIntent;
     }
 
